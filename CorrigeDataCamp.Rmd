@@ -1,0 +1,125 @@
+---
+title: "CorrigeDataCamp"
+author: "Carla Giménez Piqueres"
+date: "2026-04-11"
+output: html_document
+---
+
+- Cargar librerias 
+```{r}
+library(readxl)
+library(writexl)
+library(stringr)
+```
+
+- Descomprime el fichero de entregas en una carpeta
+```{r}
+unzip("data/entregas.zip", exdir = "data/entregas_descomprimidas")
+```
+
+- Usa una expresión regular para buscar todos los ficheros de puntuaciones en la carpeta descomprimida (usa list.files)
+```{r}
+ficheros_puntos <- list.files(path = "data/entregas_descomprimidas",                      pattern = "(?i)puntos.*\\.txt$", full.names = TRUE,  recursive = TRUE)
+```
+
+- Usa una expresión regular para buscar todos los ficheros con el justificante del curso. 
+```{r}
+ficheros_justificantes <- list.files(path = "data/entregas_descomprimidas",pattern = "(?i)cert|justificante|pdf|png|jpg",full.names = TRUE, recursive = TRUE)
+```
+Para cada una de las entregas realizadas debes extraer información para organizarla en un data frame
+
+Extrae los apellidos del usuario de la ruta del fichero de puntuaciones (strsplit)
+Importa el fichero puntos.txt y extrae la puntuación obtenida (readlines).
+¿todas las entregas usaron como nombre del fichero de puntos el indicado; puntos.txt ?¿cuántas variantes hay ?. ¿Todas las entregas contienen el fichero de puntos y el justificante de realización del curso ?
+```{r}
+library(stringr)
+
+alumnos_matriculados$Apellidos_Clean <- str_trim(alumnos_matriculados$`Apellido(s)`)
+
+apellidos_vec <- c()
+puntos_num_vec <- c()
+nom_file_vec <- c()
+contenido_txt_vec <- c()
+
+for (ruta in ficheros_puntos) {
+  
+  partes_ruta <- strsplit(ruta, split = "/")[[1]]
+  folder_name <- partes_ruta[length(partes_ruta) - 1]
+  
+  apellido_sucio <- str_split(folder_name, ",")[[1]][1]
+  apellido_limpio <- str_trim(apellido_sucio)
+  
+  lineas <- readLines(ruta, warn = FALSE)
+  texto_unido <- paste(lineas, collapse = " ")
+  
+  puntos_texto <- str_extract(texto_unido, "\\d+")
+  puntos_final <- as.numeric(puntos_texto)
+  
+  apellidos_vec <- c(apellidos_vec, apellido_limpio)
+  puntos_num_vec <- c(puntos_num_vec, puntos_final)
+  nom_file_vec <- c(nom_file_vec, basename(ruta))
+  contenido_txt_vec <- c(contenido_txt_vec, texto_unido)
+}
+
+
+variantes <- unique(nom_file_vec)
+variantes
+num_variantes <- length(variantes)
+num_variantes
+todas_puntos_txt <- all(nom_file_vec == "puntos.txt")
+todas_puntos_txt
+
+length(ficheros_puntos)
+conteo_justificantes <- length(ficheros_justificantes)
+conteo_justificantes
+
+```
+No todas las entregas usaron como nombre del fichero puntos.txt, hay un total de 11 variantes diferentes. 
+No todas las entregas contienen el fichero de puntos y el justificante ya que se han realizar 66 entregas de justificantes y 57 de puntos. 
+
+- Crea un data frame (evalua_df) que contenga:
+
+ En la primera columna (apellidos) los apellidos del usuario
+ En la segunda (puntos) la puntuación obtenida. 
+ En la tercera columna el nombre del fichero usado para almacenar los puntos (NomFile)
+ En la cuarta el contenido del fichero puntos.txt  (Puntos) como cadena de texto.
+Almacena el dataframe en un fichero excel llamado NotasRIntermedio.xlsx 
+```{r}
+library(stringr)
+library(readxl)
+library(writexl)
+
+evalua_df <- data.frame(
+  apellidos_join = apellidos_vec,   
+  puntos = puntos_num_vec,          
+  NomFile = nom_file_vec,           
+  Puntos_Texto = contenido_txt_vec, 
+  stringsAsFactors = FALSE
+)
+
+write_xlsx(evalua_df, "NotasRIntermedio.xlsx")
+```
+- El data frame debe estar ordenado en orden creciente según el apellido.
+```{r}
+evalua_df <- evalua_df[order(evalua_df$apellidos), ]
+```
+
+- Carga la información de los alumnos matriculados, incluidos en el fichero AlumnosTDXX_XX.xlsx en un data frame y combina la información con el data frame anterior (debes incluir algún identificador único, correo electróncio, ID) para asociar a cada usuario toda la información obtenida del análisis de las entregas. Guarda la información del data frame resultado de la combinación en AlumnosNotas.xlsx. Este fichero contiene a todos los alumnos matriculados y para los que realizaron la entrega de la tarea aparecerán las columnas  adicionales incluidas en el data frame evalua_df
+```{r}
+AlumnosNotas <- merge(x = alumnos_matriculados, y = evalua_df, by.x = "Apellidos_Clean",by.y = "apellidos_join", all.x = TRUE)
+
+AlumnosNotas$Apellidos_Clean <- NULL
+write_xlsx(evalua_df, "NotasRIntermedio.xlsx")
+write_xlsx(AlumnosNotas, "AlumnosNotas.xlsx")
+
+nas <- sum(is.na(AlumnosNotas$puntos))
+nas
+tot_alumnos<-nrow(AlumnosNotas)
+tot_alumnos
+
+AlumnosNotas
+
+entregas_exito<- tot_alumnos-nas
+entregas_exito
+```
+Hay un total de 27 alumnos que no han realizado la entrega, por lo que hay 57 entregas exitosas. 
