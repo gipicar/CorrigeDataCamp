@@ -10,21 +10,24 @@ output: html_document
 library(readxl)
 library(writexl)
 library(stringr)
+library(dplyr)
 ```
 
 - Descomprime el fichero de entregas en una carpeta
 ```{r}
-unzip("data/entregas.zip", exdir = "data/entregas_descomprimidas")
+if (!dir.exists("data/entregas_descomprimidas")) {
+  unzip("data/entregas.zip", exdir = "data/entregas_descomprimidas")
+}
 ```
 
 - Usa una expresión regular para buscar todos los ficheros de puntuaciones en la carpeta descomprimida (usa list.files)
 ```{r}
-ficheros_puntos <- list.files(path = "data/entregas_descomprimidas",                      pattern = "(?i)puntos.*\\.txt$", full.names = TRUE,  recursive = TRUE)
+ficheros_puntos <- list.files(path = "data/entregas_descomprimidas",pattern = "(?i)puntos.*\\.txt$", full.names = TRUE, recursive = TRUE)
 ```
 
 - Usa una expresión regular para buscar todos los ficheros con el justificante del curso. 
 ```{r}
-ficheros_justificantes <- list.files(path = "data/entregas_descomprimidas",pattern = "(?i)cert|justificante|pdf|png|jpg",full.names = TRUE, recursive = TRUE)
+ficheros_justificantes <- list.files(path = "data/entregas_descomprimidas", pattern = "(?i)cert|justificante|pdf|png|jpg", full.names = TRUE, recursive = TRUE)
 ```
 Para cada una de las entregas realizadas debes extraer información para organizarla en un data frame
 
